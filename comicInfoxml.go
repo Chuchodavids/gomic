@@ -25,8 +25,12 @@ type ComicInfo struct {
 	Publisher   string   `xml:"Publisher"`
 	Year        int      `xml:"Year"`
 	Month       int      `xml:"Month"`
-
-	Pages []Page `xml:"Pages>Page"` //Nested struct
+	Day         int      `xml:"Day"`
+	Inker       string   `xml:"Inker"`
+	Letterer    string   `xml:"letterer"`
+	Pages       []Page   `xml:"Pages>Page"` //Nested struct
+	Colorist    string   `xml:"Colorist"`
+	CoverArtist string `xml:"CoverArtist"`
 }
 
 type Page struct {
@@ -143,139 +147,107 @@ func createComicInfo(c CVResult) (ComicInfo, error) {
 		Number: c.IssueNumber,
 	}
 	if len(d.Paragraphs) != 0 {
-		comic.Summary = d.Paragraphs[0].Text
+		var summary []string
+		for _, par := range d.Paragraphs {
+			summary = append(summary, par.Text)
+		}
+		comic.Summary = strings.Join(summary, "\n")
+		comic.Summary = strings.TrimSpace(comic.Summary)
 	}
 
+	var colorist []string
+	var writer []string
+	var penciler []string
+	var letterer []string
+	var inker []string
+	var editor []string
+	var coverArtist []string
 	for _, creditPerson := range c.Credits {
-		if comic.Writer != "" && comic.Penciller != "" && comic.Editor != "" {
-			break
-		}
-		if creditPerson.Role == "writer" {
-			comic.Writer = creditPerson.Name
-			continue
-		}
-		if creditPerson.Role == "penciler" {
-			comic.Penciller = creditPerson.Name
-			continue
-		}
-		if creditPerson.Role == "editor" {
-			comic.Editor = creditPerson.Name
+		switch creditPerson.Role {
+		case "writer":
+			writer = append(writer, creditPerson.Name)
+		case "penciler":
+			penciler = append(penciler, creditPerson.Name)
+		case "editor":
+			editor = append(editor, creditPerson.Name)
+		case "letterer":
+			letterer = append(letterer, creditPerson.Name)
+		case "inker":
+			inker = append(inker, creditPerson.Name)
+		case "colorist":
+			colorist = append(colorist, creditPerson.Name)
+		case "cover":
+			coverArtist = append(coverArtist, creditPerson.Name)
 		}
 	}
+	comic.Writer = strings.Join(writer, ",")
+	comic.Editor = strings.Join(editor, ",")
+	comic.Colorist = strings.Join(colorist, ",")
+	comic.Penciller = strings.Join(penciler, ",")
+	comic.Letterer = strings.Join(letterer, ",")
+	comic.Inker = strings.Join(inker, ",")
+	comic.CoverArtist = strings.Join(coverArtist, ",")
+
 	return comic, nil
 }
 
 func addComicInfoXml(comicFile string, comicInfo ComicInfo) error {
-// Open the .cbz file for appending (or create it if it doesn't exist)
-	cbzFile, err := os.OpenFile(comicFile, os.O_RDWR, 0666)
+	// Open the .cbz file for appending (or create it if it doesn't exist)
+	cbzFile, err := os.OpenFile(comicFile, os.O_RDONLY, 0666)
 	if err != nil {
 		return err
 	}
 	defer cbzFile.Close()
 
-	tempComicInfo, _ := os.CreateTemp("", "comicinfo-*.xml")
-	defer tempComicInfo.Close()
-
-	file, err := xml.MarshalIndent(comicInfo, "", "  ")
+	tempCBZfile, err := os.CreateTemp("", "temp-cbz-*.cbz")
 	if err != nil {
 		return err
 	}
+	defer tempCBZfile.Close()
 
-	fmt.Println(string(file))
-
-	tempComicInfo.Write(file)
-
-	// Create a new zip writer
-	zipWriter := zip.NewWriter(cbzFile)
+	zipWriter := zip.NewWriter(tempCBZfile)
 	defer zipWriter.Close()
-	fileInfo, _ := os.Stat(tempComicInfo.Name())
-	header, _ := zip.FileInfoHeader(fileInfo)
-	header.Name = "comicinfo.xml"
-	header.Method = zip.Deflate
-	writer, _ := zipWriter.CreateHeader(header)
-	// Create a new zip entry (file) inside the .cbz file
 
-	// zipFile, err := zipWriter.Create("comicinfo.xml")
+	fileinfo, _ := cbzFile.Stat()
 
-	// Copy the content of the file you want to add into the zip entry
-	_, err = io.Copy(writer, tempComicInfo)
+	zipReader, err := zip.NewReader(cbzFile, fileinfo.Size())
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("File added successfully!")
+	for _, file := range zipReader.File {
+		fileReader, err := file.Open()
+		if err != nil {
+			return err
+		}
+		defer fileReader.Close()
+
+		zipFile, err := zipWriter.Create(file.Name)
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(zipFile, fileReader)
+		if err != nil {
+			return err
+		}
+	}
+
+	comicInfoXml, err := xml.MarshalIndent(comicInfo, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	zipFile, _ := zipWriter.Create("ComicInfo.xml")
+
+	_, err = zipFile.Write(comicInfoXml)
+	if err != nil {
+		return err
+	}
+
+	if err := os.Rename(tempCBZfile.Name(), comicFile); err != nil {
+		return err
+	}
+
 	return nil
 }
-
-// func modifyComicInfo(){
-// 	// Example modifications:
-// 	comicInfo.Writer = "New Writer"
-// 	comicInfo.Summary = "This is an updated summary."
-// 	comicInfo.Genre = comicInfo.Genre + ", Comedy" // Append to existing genre
-
-// 	//example adding a page
-//     newPage := Page{Image: "001.jpg", Type: "FrontCover"}
-//     comicInfo.Pages = append(comicInfo.Pages, newPage)
-
-// 	// 5. Marshal (serialize) the modified data back to XML.
-// 	modifiedXML, err := xml.MarshalIndent(comicInfo, "", "  ")
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to marshal modified ComicInfo.xml: %w", err)
-// 	}
-//     modifiedXML = []byte(xml.Header + string(modifiedXML)) // Add XML header
-
-// 	// 6. Create a temporary CBZ file.
-// 	tempCBZPath := cbzPath + ".tmp" // Or use a more robust temp file method
-// 	tempFile, err := os.Create(tempCBZPath)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to create temporary CBZ file: %w", err)
-// 	}
-// 	defer tempFile.Close() // Make sure to close the temp file
-// 	zipWriter := zip.NewWriter(tempFile)
-
-// 	// 7. Write files to the temporary CBZ, replacing ComicInfo.xml.
-// 	for _, f := range r.File {
-// 		header, err := zip.FileInfoHeader(f.FileInfo())
-// 		if err != nil {
-// 			return nil, fmt.Errorf("failed to create file header: %w", err)
-// 		}
-
-// 		//Crucially, set the correct name in the header:
-// 		header.Name = f.Name
-// 		header.Method = f.Method // Preserve compression method
-
-// 		writer, err := zipWriter.CreateHeader(header)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("failed to create file in zip: %w", err)
-// 		}
-
-// 		if f.Name == "ComicInfo.xml" {
-// 			// Write the modified XML.
-// 			if _, err := writer.Write(modifiedXML); err != nil {
-// 				return nil, fmt.Errorf("failed to write modified ComicInfo.xml to zip: %w", err)
-// 			}
-// 		} else {
-// 			// Copy other files from the original CBZ.
-// 			reader, err := f.Open()
-// 			if err != nil {
-// 				return nil, fmt.Errorf("failed to open file in original CBZ: %w", err)
-// 			}
-// 			if _, err := io.Copy(writer, reader); err != nil {
-// 				reader.Close() //Close before returning.
-// 				return nil, fmt.Errorf("failed to copy file to zip: %w", err)
-// 			}
-// 			reader.Close()
-// 		}
-// 	}
-
-// 	if err := zipWriter.Close(); err != nil {
-// 		return nil, fmt.Errorf("failed to close zip writer: %w", err)
-// 	}
-
-// 	// 8. Rename the temporary file to replace the original CBZ.
-// 	if err := os.Rename(tempCBZPath, cbzPath); err != nil {
-// 		//Attempt to remove temp file, even if rename fails.
-// 		os.Remove(tempCBZPath)
-// 		return nil, fmt.Errorf("failed to rename temporary CBZ file: %w", err)
-// 	}
-// }

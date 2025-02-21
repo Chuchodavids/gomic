@@ -45,7 +45,7 @@ type Credits struct {
 
 const (
 	cvURL   = "https://comicvine.gamespot.com/api/"      // Use HTTPS
-	api_key = "81922a4136e8769e5092c47890bf4f9fb1337451" // Replace with your API key
+	api_key = "" // Replace with your API key
 )
 
 func cvGetCredits(id int) ([]Credits, error) {
