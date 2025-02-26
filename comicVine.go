@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 )
 
 // CV represents the overall structure of the Comic Vine API response.
@@ -76,22 +78,26 @@ func cvSearch(query string) (*CVResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
+	req.Header.Add("User-Agent", "HTTPie")
 
 	q := req.URL.Query()
-	q.Add("resources", "issue") // Comic Vine uses "resource_type", not "resources"
+	q.Add("query", url.QueryEscape(query))
 	q.Add("format", "json")
 	q.Add("api_key", api_key)
-	q.Add("limit", "20")
-	q.Add("field_list", "id,name,issue_number,volume,api_detail_url,site_detail_url,description,person_credits") // Corrected field list
-	q.Add("query", query)
-	req.URL.RawQuery = q.Encode()
+	q.Add("resources", "issue")
+	encodedQuery := q.Encode()
+	encodedQuery = strings.ReplaceAll(encodedQuery, "%2B", "+")
+	encodedQuery = strings.ReplaceAll(encodedQuery, "-", "")
+	req.URL.RawQuery = encodedQuery
+	fmt.Println(encodedQuery)
+	fmt.Println(req.URL.String())
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %w", err)
 	}
-	defer resp.Body.Close() // Close the response body
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
@@ -111,7 +117,7 @@ func cvSearch(query string) (*CVResult, error) {
 		return nil, fmt.Errorf("API returned an error: %s", cv.Error)
 	}
 
-	// Display results and ask the user to choose
+	
 	fmt.Printf("Issue name entered: %v", query+"\n")
 	fmt.Println("Search Results:")
 	for i, result := range cv.Results {

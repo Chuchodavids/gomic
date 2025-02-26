@@ -22,7 +22,7 @@ func run(comicPath string) error {
 			return fmt.Errorf("file has no extension")
 		}
 		comicFilename := filepath.Base(comic)
-		r, err := cvSearch(comicFilename)
+		r, err := cvSearch(strings.ToLower(comicFilename))
 		if err != nil {
 			return err
 		}
