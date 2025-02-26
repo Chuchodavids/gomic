@@ -20,15 +20,18 @@ type CV struct {
 
 // CVResult represents a single issue result from the Comic Vine API.
 type CVResult struct {
-	APIDetailURL  string    `json:"api_detail_url"`
-	ID            int       `json:"id"`
-	IssueNumber   string    `json:"issue_number"`
-	Name          string    `json:"name"` //  Use string, handle potential null in display logic
-	SiteDetailURL string    `json:"site_detail_url"`
-	Description   string    `json:"description"`
-	Credits       []Credits `json:"person_credits"`
-	StoreDate     string    `json:"store_date"`
-	Volume        struct {
+	APIDetailURL     string    `json:"api_detail_url"`
+	ID               int       `json:"id"`
+	IssueNumber      string    `json:"issue_number"`
+	Name             string    `json:"name"` //  Use string, handle potential null in display logic
+	SiteDetailURL    string    `json:"site_detail_url"`
+	Description      string    `json:"description"`
+	Credits          []Credits `json:"person_credits"`
+	StoreDate        string    `json:"store_date"`
+	CharacterCredits string    `json:"character_credits"`
+	TeamCredits      string    `json:"team_credits"`
+	StoryArcCredits  string    `json:"story_arc_credits"`
+	Volume           struct {
 		APIDetailURL  string `json:"api_detail_url"`
 		ID            int    `json:"id"`
 		Name          string `json:"name"`
@@ -66,8 +69,7 @@ func cvGetCredits(id int) ([]Credits, error) {
 	return v.Results.Credits, nil
 }
 
-func cvSearch(issueName string, issueNumber string) (*CVResult, error) {
-	query := issueName + " " + issueNumber
+func cvSearch(query string) (*CVResult, error) {
 	urlCV := fmt.Sprintf(cvURL + "search")
 	req, err := http.NewRequest(http.MethodGet, urlCV, nil)
 	if err != nil {
@@ -109,7 +111,7 @@ func cvSearch(issueName string, issueNumber string) (*CVResult, error) {
 	}
 
 	// Display results and ask the user to choose
-	fmt.Printf("Issue name entered: %v", issueName+" -- "+"Issue number: #"+issueNumber+"\n")
+	fmt.Printf("Issue name entered: %v", query+"\n")
 	fmt.Println("Search Results:")
 	for i, result := range cv.Results {
 		// Handle potentially missing issue names gracefully.

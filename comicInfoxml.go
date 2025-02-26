@@ -28,9 +28,10 @@ type ComicInfo struct {
 	Day         int      `xml:"Day"`
 	Inker       string   `xml:"Inker"`
 	Letterer    string   `xml:"letterer"`
-	Pages       []Page   `xml:"Pages>Page"` //Nested struct
 	Colorist    string   `xml:"Colorist"`
-	CoverArtist string `xml:"CoverArtist"`
+	CoverArtist string   `xml:"CoverArtist"`
+	Translator  string   `xml:"Translator"`
+	Web         string   `xml:"Web"`
 }
 
 type Page struct {
@@ -162,6 +163,7 @@ func createComicInfo(c CVResult) (ComicInfo, error) {
 	var inker []string
 	var editor []string
 	var coverArtist []string
+	var translator []string
 	for _, creditPerson := range c.Credits {
 		switch creditPerson.Role {
 		case "writer":
@@ -178,6 +180,8 @@ func createComicInfo(c CVResult) (ComicInfo, error) {
 			colorist = append(colorist, creditPerson.Name)
 		case "cover":
 			coverArtist = append(coverArtist, creditPerson.Name)
+		case "translator":
+			translator = append(translator, creditPerson.Name)
 		}
 	}
 	comic.Writer = strings.Join(writer, ",")
@@ -187,6 +191,8 @@ func createComicInfo(c CVResult) (ComicInfo, error) {
 	comic.Letterer = strings.Join(letterer, ",")
 	comic.Inker = strings.Join(inker, ",")
 	comic.CoverArtist = strings.Join(coverArtist, ",")
+	comic.Translator = strings.Join(translator, ",")
+	comic.Web = c.SiteDetailURL
 
 	return comic, nil
 }
