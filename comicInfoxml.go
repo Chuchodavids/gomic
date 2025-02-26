@@ -11,27 +11,27 @@ import (
 )
 
 type ComicInfo struct {
-	XMLName     xml.Name `xml:"ComicInfo"`
-	Title       string   `xml:"Title"`
-	Series      string   `xml:"Series"`
-	Number      string   `xml:"Number"`
-	Editor      string   `xml:"Editor"`
-	Summary     string   `xml:"Summary"`
-	Writer      string   `xml:"Writer"`
-	Penciller   string   `xml:"Penciller"`
-	Genre       string   `xml:"Genre"`
-	PageCount   int      `xml:"PageCount"` //Example of int
-	LanguageISO string   `xml:"LanguageISO"`
-	Publisher   string   `xml:"Publisher"`
-	Year        int      `xml:"Year"`
-	Month       int      `xml:"Month"`
-	Day         int      `xml:"Day"`
-	Inker       string   `xml:"Inker"`
-	Letterer    string   `xml:"letterer"`
 	Colorist    string   `xml:"Colorist"`
 	CoverArtist string   `xml:"CoverArtist"`
+	Day         int      `xml:"Day"`
+	Editor      string   `xml:"Editor"`
+	Genre       string   `xml:"Genre"`
+	Inker       string   `xml:"Inker"`
+	LanguageISO string   `xml:"LanguageISO"`
+	Letterer    string   `xml:"letterer"`
+	Month       int      `xml:"Month"`
+	Number      string   `xml:"Number"`
+	PageCount   int      `xml:"PageCount"` //Example of int
+	Penciler   string   `xml:"Penciler"`
+	Publisher   string   `xml:"Publisher"`
+	Series      string   `xml:"Series"`
+	Summary     string   `xml:"Summary"`
+	Title       string   `xml:"Title"`
 	Translator  string   `xml:"Translator"`
 	Web         string   `xml:"Web"`
+	Writer      string   `xml:"Writer"`
+	XMLName     xml.Name `xml:"ComicInfo"`
+	Year        int      `xml:"Year"`
 }
 
 type Page struct {
@@ -187,7 +187,7 @@ func createComicInfo(c CVResult) (ComicInfo, error) {
 	comic.Writer = strings.Join(writer, ",")
 	comic.Editor = strings.Join(editor, ",")
 	comic.Colorist = strings.Join(colorist, ",")
-	comic.Penciller = strings.Join(penciler, ",")
+	comic.Penciler = strings.Join(penciler, ",")
 	comic.Letterer = strings.Join(letterer, ",")
 	comic.Inker = strings.Join(inker, ",")
 	comic.CoverArtist = strings.Join(coverArtist, ",")

@@ -1,15 +1,15 @@
 package main
 
 import (
-	"os"
+	"fmt"
 	"path/filepath"
 	"strings"
 )
 
-func run(comic string) error {
+func run(comicPath string) error {
 
 	// extract comic info from comicinfo.xml
-	comicInfo, err := extractComicInfo(comic)
+	comicInfo, err := extractComicInfo(comicPath)
 	if err != nil && err != ErrMissingComicInfo {
 		return err
 	}
@@ -17,10 +17,14 @@ func run(comic string) error {
 	// if comicinfo.xml does not exists find it
 	if err == ErrMissingComicInfo {
 		// search in comic vine using name and issue number
-		comic, _ = strings.CutSuffix(comic, filepath.Ext(comic))
-		r, err := cvSearch(filepath.Base(comic))
+		comic, ok := strings.CutSuffix(comicPath, filepath.Ext(comicPath))
+		if !ok {
+			return fmt.Errorf("file has no extension")
+		}
+		comicFilename := filepath.Base(comic)
+		r, err := cvSearch(comicFilename)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		// Make another query to comics vine to get the credits from the comic ID
 		credits, err := cvGetCredits(r.ID)
@@ -31,15 +35,22 @@ func run(comic string) error {
 		r.Credits = credits
 
 		// Create the comicinfo.xml
-		a, _ := createComicInfo(*r)
+		newComicInfoXml, err := createComicInfo(*r)
+		if err != nil {
+			return err
+		}
 
-		addComicInfoXml(os.Args[1], a)
+		err = addComicInfoXml(comicPath, newComicInfoXml)
+		if err != nil {
+			return err
+		}
 
 	}
 	// if name and series in xml file, continue
 	// TODO: fix this
-	if err != ErrMissingComicInfo {
-		organizer(comic, comicInfo)
-	}
+		err = organizer(comicPath, comicInfo)
+		if err != nil {
+			return err
+		}
 	return nil
 }

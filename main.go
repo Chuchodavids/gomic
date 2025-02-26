@@ -28,7 +28,13 @@ func main() {
 			if info.IsDir() {
 				return nil
 			}
-			run(path)
+			err = run(path)
+			if err == ErrSkipIssue {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
 			return nil
 		})
 	}

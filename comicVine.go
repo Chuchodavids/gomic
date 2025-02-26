@@ -52,6 +52,7 @@ const (
 )
 
 func cvGetCredits(id int) ([]Credits, error) {
+	// TODO: some roles are joined by a comma i.e. "penciler, inker"
 	urlCV := fmt.Sprintf("%sissue/4000-%v?api_key=%s&format=json&field_list=person_credits", cvURL, id, api_key)
 	resp, err := http.Get(urlCV)
 	if err != nil {
@@ -133,7 +134,7 @@ func cvSearch(query string) (*CVResult, error) {
 	var choiceStr string // Use a string to handle non-numeric input
 	var choice int
 	for {
-		fmt.Printf("Enter the number of the correct issue (or 0 to cancel): ")
+		fmt.Printf("Enter the number of the correct issue (or 0 to skip): ")
 		_, err := fmt.Scanln(&choiceStr) // Read user input as a string
 		if err != nil {
 			fmt.Println("Invalid input. Please enter a number.")
@@ -150,7 +151,7 @@ func cvSearch(query string) (*CVResult, error) {
 	}
 
 	if choice == 0 {
-		return nil, fmt.Errorf("operation canceled by user")
+		return nil, ErrSkipIssue
 	}
 
 	return &cv.Results[choice-1], nil
